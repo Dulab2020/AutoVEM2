@@ -185,7 +185,7 @@ AutoVEM2 has three modules, including `call` module, `analysis` module, and `plo
 
 
 ` hap_date.pdf`	Produced by the `plot` module . Show the epidemic trends of haplotypes.
-![image-20210504092426244](D:\Dulab2020\AutoVEM2\images\image-20210504092426244.png)
+![image-20210504092426244](https://github.com/Dulab2020/AutoVEM2/blob/main/images/image-20210504092426244.png)
 
 ## 7. Examples
 
@@ -208,6 +208,7 @@ python run.py plot --input Example/analysis/data_plot.tsv --days 7 --output Exam
 
 # integrate the three into the pipeline module
 # All output by pipeline module will be stored in the Example/pipeline folder
-python pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7
+python pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa 
+--length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7
 --output Example/pipeline
 ```
