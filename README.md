@@ -6,7 +6,7 @@ Program: AutoVEM2 (works on Linux machine)
 
 Description: Virus key mutations and epidemic trends analysis tool
 
-Version: V1.0
+Version: V2.0
 
 Authors: Xibinbin
 
