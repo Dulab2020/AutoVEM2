@@ -587,24 +587,7 @@ def module2(file, directory, refsequence, sites=None, frequency=None):
     if not os.path.exists(os.path.abspath(refsequence)):
         print("Error: can't find the %s file"%(os.path.abspath(file)))
         sys.exit()
-    
-    path = os.path.abspath(directory)
-    if os.path.exists(path):
-        print("%s already exists."%path)
-        dirname, filename = os.path.split(path)
-        i = 0
-        while True:
-            i = i + 1
-            temp = os.path.join(dirname, r"#%s.%s#"%(filename,i))
-            if os.path.exists(temp):
-                continue
-            else :
-                os.rename(path, temp)
-                print("Back up %s to %s"%(path, temp))
-                break
-    os.mkdir(path)
-
-
+        
     with open(refsequence, 'r') as fhand:
         reference = ''
         for line in fhand.readlines():

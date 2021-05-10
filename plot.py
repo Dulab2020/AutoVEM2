@@ -169,21 +169,6 @@ def module3(dataPlot, outDirectory, days):
     if not os.path.exists(os.path.abspath(file)):
         print("Error: can't find the %s file"%(os.path.abspath(file)))
         sys.exit()
-    path = os.path.abspath(outDirectory)
-    if os.path.exists(path):
-        print("%s already exists."%path)
-        dirname, filename = os.path.split(path)
-        i = 0
-        while True:
-            i = i + 1
-            temp = os.path.join(dirname, r"#%s.%s#"%(filename,i))
-            if os.path.exists(temp):
-                continue
-            else :
-                os.rename(path, temp)
-                print("Back up %s to %s"%(path, temp))
-                break
-    os.mkdir(path)
 
     print('Plotting...')
     plot(dataPlot, outDirectory, days)

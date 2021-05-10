@@ -101,6 +101,23 @@ def analysis_func(args):
         if minimum<=0:
             print("There is(are) negative value(s) in your giver sites.")
             sys.exit()
+
+    path = os.path.abspath(outDir)
+    if os.path.exists(path):
+        print("%s already exists."%path)
+        dirname, filename = os.path.split(path)
+        i = 0
+        while True:
+            i = i + 1
+            temp = os.path.join(dirname, r"#%s.%s#"%(filename,i))
+            if os.path.exists(temp):
+                continue
+            else :
+                os.rename(path, temp)
+                print("Back up %s to %s"%(path, temp))
+                break
+    os.mkdir(path)
+
     analysis.module2(inputFile, outDir, ref, sites=sites, frequency=frequency)
 
 def plot_func(args):
@@ -119,6 +136,23 @@ def plot_func(args):
     if days<=0:
         print("Error: bad values of '--days' argument, should be a positive integer.")
         sys.exit()
+    
+    path = os.path.abspath(outDir)
+    if os.path.exists(path):
+        print("%s already exists."%path)
+        dirname, filename = os.path.split(path)
+        i = 0
+        while True:
+            i = i + 1
+            temp = os.path.join(dirname, r"#%s.%s#"%(filename,i))
+            if os.path.exists(temp):
+                continue
+            else :
+                os.rename(path, temp)
+                print("Back up %s to %s"%(path, temp))
+                break
+    os.mkdir(path)
+    
     plot.module3(dataPlot, outDir, days)
 
 def pipeline_func(args):
