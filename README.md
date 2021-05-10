@@ -195,7 +195,6 @@ An examples has been provided.
 cd ../AutoVEM2
 # call module
 # All output by call command will be stored in the Example/call folder
-# 
 python run.py call --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --output Example/call
 
 # analysis module
