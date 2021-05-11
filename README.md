@@ -189,25 +189,27 @@ AutoVEM2 has three modules, including `call` module, `analysis` module, and `plo
 
 ## 7. Examples
 
-An examples has been provided.
+An example has been provided.
 
 ```shell
 cd ../AutoVEM2
 # call module
+# This command can produced the snp_merged and sequences_information files
 # All output by call command will be stored in the Example/call folder
 python run.py call --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --output Example/call
 
 # analysis module
+# This command can produced the snp_sites.tsv, plot.LD.PNG, haplotypes, hap_mutations.pdf # and data_plot.tsv files
 # All output by analysis command will be stored in the Example/analysis folder
 python run.py analysis --input Example/call/snp_merged.tsv --ref Example/reference/ref_SARS-CoV-2.fa --frequency 0.2 --output Example/analysis
 
 # plot module
+# This command can produced the hap_date.pdf file
 # All output by plot command will be stored in the Example/plot folder
 python run.py plot --input Example/analysis/data_plot.tsv --days 7 --output Example/plot
 
 # integrate the three into the pipeline module
-# All output by pipeline module will be stored in the Example/pipeline folder
-python pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa 
---length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7
---output Example/pipeline
+# This command can produced all files mentioned above
+# All output by pipeline command will be stored in the Example/pipeline folder
+python pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
 ```
