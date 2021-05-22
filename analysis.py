@@ -472,7 +472,6 @@ def hap_plot(datafile, snpfile, snp_position, directory, length):
         else :
             item = 'H'+ str(i)
         haps.append(item)
-    
     haps_id = dict()
     for item in haps:
         df2 = df[df.Name==item]
@@ -482,7 +481,7 @@ def hap_plot(datafile, snpfile, snp_position, directory, length):
     df = pd.read_csv(snpfile, sep='\t')
     data = dict()
     for hap,ids in haps_id.items():
-        df2 = df.loc[df.Id.isin(ids)]
+        df2 = df[np.isin(df.Id,ids)]
         num = len(df2.Id.unique().tolist())
         tmp = df2.Position.value_counts()
         fre = tmp/num

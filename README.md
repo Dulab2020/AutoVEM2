@@ -39,6 +39,24 @@ VCFtools: http://vcftools.sourceforge.net/
 
 Haploview.jar (v4.2) has been provided. And please make sure the Java Runtime Environment meets the requirements of Haploview. For more details about Haploview, please visit: https://www.broadinstitute.org/haploview/tutorial
 
+**Note**
+
+**How to determine whether your Java environment meets the requirements of Haploview or not?**
+
+```shell
+# First step, type the following command.
+# If it outputs the help message of Haploview, go to the second step.
+cd ../AutoVEM2
+java -jar Haploview.jar -h
+
+# Second step, type the following command
+# If you find it can successufully produce the plot.CUSTblocks file and the plot.LD.PNG
+# picture under the AutoVEM2 folder, it # means your Java environment meets the
+# requirements of Haploview.
+cd ../AutoVEM2
+java -jar Haploview.jar -n -skipcheck -pedfile ../AutoVEM2/Example/Haploview_test_example/snp.ped -info ../AutoVEM2/Example/Haploview_test_example/snp.info -blocks ../AutoVEM2/Example/Haploview_test_example/block.txt -png -out ../AutoVEM2/plot
+```
+
 ### 3. Installation
 
 The tool does not need to be installed and can be used directly.
@@ -101,6 +119,12 @@ AutoVEM2 has three modules, including `call` module, `analysis` module, and `plo
 - ` call`: **The first step**. This module will carry out quality control of the genomes and find all **SNV** mutations and stored them into the ` snp_merged.tsv` file which is the input file of the `analysis` module. And this module will also produce a ` sequences_information.tsv` file. It stores the summary result of quality control. 
 
   For more details, please use ` python run.py call -h` command line.
+
+  ```shell
+  # parameters of call module
+  ```
+
+  
 
 - ` analysis`: **The second step**. This module will obtain key mutation sites and find haplotype of every sequence. Haplotype information is stored into the ` data_plot.tsv` file. This file is the input file of the `plot` module.
 
