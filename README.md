@@ -51,7 +51,7 @@ java -jar Haploview.jar -h
 
 # Second step, type the following command
 # If you find it can successufully produce the plot.CUSTblocks file and the plot.LD.PNG
-# picture under the AutoVEM2 folder, it # means your Java environment meets the
+# picture under the AutoVEM2 folder, it means your Java environment meets the
 # requirements of Haploview.
 cd ../AutoVEM2
 java -jar Haploview.jar -n -skipcheck -pedfile ../AutoVEM2/Example/Haploview_test_example/snp.ped -info ../AutoVEM2/Example/Haploview_test_example/snp.info -blocks ../AutoVEM2/Example/Haploview_test_example/block.txt -png -out ../AutoVEM2/plot
@@ -119,12 +119,6 @@ AutoVEM2 has three modules, including `call` module, `analysis` module, and `plo
 - ` call`: **The first step**. This module will carry out quality control of the genomes and find all **SNV** mutations and stored them into the ` snp_merged.tsv` file which is the input file of the `analysis` module. And this module will also produce a ` sequences_information.tsv` file. It stores the summary result of quality control. 
 
   For more details, please use ` python run.py call -h` command line.
-
-  ```shell
-  # parameters of call module
-  ```
-
-  
 
 - ` analysis`: **The second step**. This module will obtain key mutation sites and find haplotype of every sequence. Haplotype information is stored into the ` data_plot.tsv` file. This file is the input file of the `plot` module.
 
@@ -235,5 +229,5 @@ python run.py plot --input Example/analysis/data_plot.tsv --days 7 --output Exam
 # integrate the three into the pipeline module
 # This command can produced all files mentioned above
 # All output by pipeline command will be stored in the Example/pipeline folder
-python pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
+python run.py pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
 ```
