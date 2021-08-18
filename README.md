@@ -39,27 +39,23 @@ VCFtools: http://vcftools.sourceforge.net/
 
 Haploview.jar (v4.2) has been provided. And please make sure the Java Runtime Environment meets the requirements of Haploview. For more details about Haploview, please visit: https://www.broadinstitute.org/haploview/tutorial
 
-**Note**
-
-**How to determine whether your Java environment meets the requirements of Haploview or not?**
-
-```shell
-# First step, type the following command.
-# If it outputs the help message of Haploview, go to the second step.
-cd ../AutoVEM2
-java -jar Haploview.jar -h
-
-# Second step, type the following command
-# If you find it can successufully produce the plot.CUSTblocks file and the plot.LD.PNG
-# picture under the AutoVEM2 folder, it means your Java environment meets the
-# requirements of Haploview.
-cd ../AutoVEM2
-java -jar Haploview.jar -n -skipcheck -pedfile ../AutoVEM2/Example/Haploview_test_example/snp.ped -info ../AutoVEM2/Example/Haploview_test_example/snp.info -blocks ../AutoVEM2/Example/Haploview_test_example/block.txt -png -out ../AutoVEM2/plot
-```
-
 ### 3. Installation
 
-The tool does not need to be installed and can be used directly.
+AutoVEM2 and its dependencies can be easily installed through conda, we strongly recommend you create a new conda environment, using the following command:
+
+```shell
+conda create -n autovem2 -c bioconda -c dulab2020 -c conda-forge autovem2
+```
+
+or you can also install autovem2 in the present conda environment:
+
+```shell
+conda install -c bioconda -c dulab2020 -c conda-forge autovem2
+```
+
+**note:**
+
+You **must** specify conda channels  using **-c bioconda -c dulab2020 -c conda-forge** to make sure the latest version of samtools to be installed, or you may get error messages about *libcrypto.so.1.0.0* when you run autovem2.
 
 ### 4. Format of Genome Sequences
 
@@ -104,14 +100,14 @@ ACTACAATAATTCATGTATAAAACTAAGGGCGTAACCGAAATCGGTTGA...ATGC
 ### 5. Usage
 
 ```
-cd path/AutoVEM2
-python run.py ...
-#for more details, use the following command lines
-python run.py -h
-python run.py pipeline -h
-python run.py call -h
-python run.py analysis -h
-python run.py plot -h
+#If you install autovem2 through conda, activate the conda environment which you installed autovem2 in
+conda activate autovem2
+#Then you can use autovem2, for more help messages, use the following command lines
+autovem2 -h
+autovem2 pipeline -h
+autovem2 call -h
+autovem2 analysis -h
+autovem2 plot -h
 ```
 
 AutoVEM2 has three modules, including `call` module, `analysis` module, and `plot` module which can be used modularly or as a whole. The `pipeline`  combines the three modules to perform a complete analysis function. But we recommend using AutoVEM2 modularly which can separate the whole analysis  into the following three steps:
@@ -207,27 +203,28 @@ AutoVEM2 has three modules, including `call` module, `analysis` module, and `plo
 
 ## 7. Examples
 
-An example has been provided.
+An example has been provided, you can download it from the github repo to your local computer.
 
 ```shell
+git clone https://github.com/Dulab2020/AutoVEM2.git
 cd ../AutoVEM2
 # call module
 # This command can produced the snp_merged and sequences_information files
 # All output by call command will be stored in the Example/call folder
-python run.py call --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --output Example/call
+autovem2 call --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --output Example/call
 
 # analysis module
 # This command can produced the snp_sites.tsv, plot.LD.PNG, haplotypes, hap_mutations.pdf # and data_plot.tsv files
 # All output by analysis command will be stored in the Example/analysis folder
-python run.py analysis --input Example/call/snp_merged.tsv --ref Example/reference/ref_SARS-CoV-2.fa --frequency 0.2 --output Example/analysis
+autovem2 analysis --input Example/call/snp_merged.tsv --ref Example/reference/ref_SARS-CoV-2.fa --frequency 0.2 --output Example/analysis
 
 # plot module
 # This command can produced the hap_date.pdf file
 # All output by plot command will be stored in the Example/plot folder
-python run.py plot --input Example/analysis/data_plot.tsv --days 7 --output Example/plot
+autovem2 plot --input Example/analysis/data_plot.tsv --days 7 --output Example/plot
 
 # integrate the three into the pipeline module
 # This command can produced all files mentioned above
 # All output by pipeline command will be stored in the Example/pipeline folder
-python run.py pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
+autovem2 pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
 ```
