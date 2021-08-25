@@ -148,9 +148,9 @@ def genome_quality_control(file, length=None, a=None, b=None, c=None):
   
     return 0
 
-def split_sequence(file, path, filter=None):
+def split_sequence(file, path, filter="yes"):
     '''
-    split genome sequence to reads(~157nt)
+    split genome sequence to reads(~80nt)
 
     :param file: genome sequence
     :param path: output directory
@@ -207,7 +207,7 @@ def split_sequence(file, path, filter=None):
     tmp1 = tmp1.lower()
     tmp2 = copy.deepcopy(region)
     tmp2 = tmp2.lower()
-    if filter is None:
+    if filter == "yes":
         if ((tmp1=='na') or (tmp2=='na')):
             return -1, -1, -1
     if tmp2 in deletes:
@@ -359,7 +359,7 @@ def snp_mutation_information(file):
 
     return mutationInformation
 
-def module1(inputDirectory, outputDirectory, reference, collection_time=None, length=None, number_n=None, number_db=None, number_indels=None):
+def module1(inputDirectory, outputDirectory, reference, collection_time="yes", length=None, number_n=None, number_db=None, number_indels=None):
     '''
     Call SNVs
 
@@ -436,7 +436,7 @@ def module1(inputDirectory, outputDirectory, reference, collection_time=None, le
         if flag == -1:
             continue
         else:
-            basicmessage, splitfasta, tempdirectory = split_sequence(file, path, collection_time)
+            basicmessage, splitfasta, tempdirectory = split_sequence(file, path, filter=collection_time)
             if basicmessage == -1:
                 continue
             else :
