@@ -78,7 +78,7 @@ def create_index(path, refsequence):
     '''
     os.system('bowtie2-build -f %s %s/index' % (refsequence, path))
 
-def genome_quality_control(file, length=None, a=None, b=None, c=None):
+def genome_quality_control(file, referenceLength=None, a=None, b=None, c=None):
     '''
     quality control for the first time
 
@@ -123,7 +123,7 @@ def genome_quality_control(file, length=None, a=None, b=None, c=None):
             if len_sequence < a:
                 return -1
         else:
-            if (len_sequence/length) < a:
+            if (len_sequence/referenceLength) < a:
                 return -1
 
     if b is None:
@@ -133,7 +133,7 @@ def genome_quality_control(file, length=None, a=None, b=None, c=None):
             if number_n > b:
                 return -1
         else:
-            if (number_n/length) > b:
+            if (number_n/referenceLength) > b:
                 return -1
 
     if c is None:
@@ -143,7 +143,7 @@ def genome_quality_control(file, length=None, a=None, b=None, c=None):
             if number_db > c:
                 return -1
         else:
-            if (number_db/length) > c:
+            if (number_db/referenceLength) > c:
                 return -1  
   
     return 0
@@ -174,30 +174,25 @@ def split_sequence(file, path, filter="yes"):
             if len(line)==0:
                 continue
             if line[0]==">":
-                head = line[:]
+                header = line[:]
                 continue
             line = line.replace(" ","")
             sequence = sequence + line
 
 
     length = len(sequence)
-    section = length//80
+    # section = length//80
     subSequence = list()
-    subSequence.append(head)
-    for i in list(range(section)):
-        if i==(section-1):
-            start = (section-1)*80
-            sub = sequence[start:]
-            sub = sub.upper()
-            subSequence.append(sub)
-            continue
-        start = i*80
-        stop = (i+1)*80
-        sub = sequence[start:stop]
+    # subSequence.append(head)
+    for i in list(range(0,length-30)):
+        if (i+100) >= length:
+            sub = sequence[i:]
+        else:
+            sub = sequence[i:(i+100)]
         sub = sub.upper()
         subSequence.append(sub)
 
-    header = subSequence[0]
+    # header = subSequence[0]
     header = header.lstrip('>')
     tmp = copy.deepcopy(header)
     _, id, date, region = tmp.split('|')
@@ -231,11 +226,8 @@ def split_sequence(file, path, filter="yes"):
     splitedFile = os.path.join(tempAnalysisDirectory, splitFastaFileName)
     with open(splitedFile, 'a') as fhand:
         for i, subsequence in enumerate(subSequence):
-            if i == 0:
-                pass
-            else :
-                readName = ">read" + str(i) + "\n" + str(subsequence) + "\n"
-                fhand.write(readName)
+            readName = ">read" + str(i) + "\n" + str(subsequence) + "\n"
+            fhand.write(readName)
 
 
     return basicMessage, splitedFile, tempAnalysisDirectory
@@ -432,7 +424,7 @@ def module1(inputDirectory, outputDirectory, reference, collection_time="yes", l
 
     pass_n = 0
     for file in files_path:
-        flag = genome_quality_control(file, length=length_ref,a=length, b=number_n, c=number_db)
+        flag = genome_quality_control(file, referenceLength=length_ref,a=length, b=number_n, c=number_db)
         if flag == -1:
             continue
         else:
