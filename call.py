@@ -265,7 +265,7 @@ def mpileup(file, directory, refsequence):
     '''
     bam format -> vcf format
 
-    :param file: temp.sam
+    :param file: temp.bam
     :param directory: temp directory
     :returns vcfFile: temp.vcf
     '''
@@ -292,7 +292,7 @@ def call(vcfFile, directory, ploidy, a=None):
 
 
     # can add [--threads <int>] to use multithreading
-    os.system('bcftools call --ploidy-file %s -vm %s -o %s' % (ploidy, vcfFile, snp_indel_file_path))
+    os.system('bcftools call --ploidy 1 -vm %s -o %s' % (vcfFile, snp_indel_file_path))
     if a is None:
         os.system('vcftools --vcf %s --recode --remove-indels --stdout > %s' % (snp_indel_file_path, snp_file_path))
         return 0, snp_file_path

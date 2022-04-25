@@ -140,17 +140,17 @@ def ref_haplotype(position, refsequence):
         referenceHaplotype = referenceHaplotype + referenceGenomeSequence[item-1]
     return referenceHaplotype
 
-def genome_haplotype(file, position, positionAlt, referenceHaplotype, directory):
+def genome_haplotype(file, position, referenceHaplotype, directory):
     '''
     get haplotype sequence of genome
 
     :param file: snp_merged.tsv
     :param position: mutation positions
-    :param positionAlt: position_ref_alt(dict)
     :param referenceHaplotype: reference haplotype sequence
     :param directory: output directory
     :returns filePath: data.tsv
     '''
+    position_ref = dict(zip(position, referenceHaplotype))
     filePath = os.path.join(directory, 'data.tsv')
     prefix = directory[:]
     suffix = 'data.tsv'
@@ -166,18 +166,19 @@ def genome_haplotype(file, position, positionAlt, referenceHaplotype, directory)
                 os.rename(filePath, tmp)
                 print("Back up %s to %s"%(filePath, tmp))
                 break
+    header = "Id\tDate\tCountry\tHap\n"
+    with open(filePath, "a") as fhand:
+        fhand.write(header)
 
     df = pd.read_csv(file, sep='\t')
     ids = df['Id'].unique().tolist()
 
-    Date = list()
-    Country = list()
-    Case_id = list()
-    snp_positions = list()
+    records = list()
+    for idx in ids:
+        hapSeq = ""
 
-    for item in ids:
-        df1 = df[df['Id']==item]
-        case = item
+        df1 = df[df['Id']==idx]
+
         date = df1['Date'].value_counts().index.tolist()
         if len(date)==0:
             date = "NA"
@@ -188,32 +189,24 @@ def genome_haplotype(file, position, positionAlt, referenceHaplotype, directory)
             country = "NA"
         else:
             country = country[0]
-        Case_id.append(case)
-        Date.append(date)
-        Country.append(country)
-        mutation_positions = df1['Position'].tolist()
-        mutation_positions = list([int(x) for x in mutation_positions])
-        snp_positions.append(mutation_positions)
+        
+        positions = df1["Position"].tolist()
+        positions = list([int(x) for x in positions])
+        position_alt = dict(zip(positions, df1["Alt"].tolist()))
 
-    haplotypes = list()
-    for item in snp_positions:
-        sites = str()
-        i = -1
-        for site in position:
-            i = i + 1
+        for site, ref in position_ref:
             site = int(site)
-            if site in item:
-                sites = sites + positionAlt[site][1]
+            if site in position_alt:
+                hapSeq = hapSeq + position_alt[site]
             else:
-                sites = sites + referenceHaplotype[i]
-        haplotypes.append(sites)
-    data = pd.DataFrame(data={'Id': Case_id,
-                                   'Date': Date,
-                                   'Country':Country,
-                                   'Hap': haplotypes})
-    data.to_csv(filePath, sep='\t', index=False)
+                hapSeq = hapSeq + ref
+        tmp = str(idx) + "\t" + str(date) + "\t" + str(country) + "\t" + str(hapSeq) + "\t"
+        records.append(tmp)
 
-    
+    with open(filePath, "a") as fhand:
+        for line in records:
+            fhand.write(line)
+
     return filePath
 
 def block_file(position, directory):
@@ -610,7 +603,7 @@ def module2(file, directory, refsequence, sites=None, frequency=None):
 
     print('Obtaining reference haplotype sequence and data.tsv file...')
     ref_haplotype_sequence = ref_haplotype(snp_position, refsequence)
-    dataFile = genome_haplotype(file, snp_position, snp_ref_alt, ref_haplotype_sequence, directory)
+    dataFile = genome_haplotype(file, snp_position, ref_haplotype_sequence, directory)
     print('Done!')
 
     print('Obtaining block.txt file...')
