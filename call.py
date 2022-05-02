@@ -196,7 +196,7 @@ def split_sequence(file, path, filter="yes"):
     header = header.lstrip('>')
     tmp = copy.deepcopy(header)
     _, id, date, region = tmp.split('|')
-    id = id.split()[0]
+    # id = id.split()[0]
 
     tmp1 = copy.deepcopy(date)
     tmp1 = tmp1.lower()
@@ -205,13 +205,13 @@ def split_sequence(file, path, filter="yes"):
     if filter == "yes":
         if ((tmp1=='na') or (tmp2=='na')):
             return -1, -1, -1
-    if tmp2 in deletes:
-        return -1, -1, -1
-    if tmp2 in China:
-        region = 'China'
+    # if tmp2 in deletes:
+    #     return -1, -1, -1
+    # if tmp2 in China:
+    #     region = 'China'
         
 
-    region = region.title()
+    # region = region.title()
     basicMessage = dict()
     basicMessage['Id'] = id
     basicMessage['Country'] = region
