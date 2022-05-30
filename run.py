@@ -231,7 +231,7 @@ def pipeline_func(args):
     plot.module3(dataPlot, outDir, days)
 
 parser = argparse.ArgumentParser(prog='AutoVEM')
-parser.add_argument('--version', '-v', action='version', version='AutoVEM2 V1.0')
+parser.add_argument('--version', '-v', action='version', version='AutoVEM2 V2.1')
 subparsers = parser.add_subparsers()
 
 call_parser = subparsers.add_parser('call', help='Quality control of genomes and call all SNVs')

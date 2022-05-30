@@ -27,7 +27,7 @@ License: Released under GNU General Public License
 
 ### 2. Dependencies
 
-Bowtie2 (v2.4.2), SAMtools (v1.10), BCFtools (v1.10.2) and VCFtools (v0.1.16) are required. Please make sure you have installed these tools and add them to the environment variables globally before using AutoVEM2. You can visit the following websites to install them:
+Bowtie2 (v2.4.2), SAMtools (v1.10), BCFtools (v1.10.2) , VCFtools (v0.1.16), picard (v2.26.11), and GATK4 (v4.2.5.0) are required. Please make sure you have installed these tools and add them to the environment variables globally before using AutoVEM2. You can visit the following websites to install them:
 
 Bowtie2: http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
 
@@ -228,3 +228,17 @@ autovem2 plot --input Example/analysis/data_plot.tsv --days 7 --output Example/p
 # All output by pipeline command will be stored in the Example/pipeline folder
 autovem2 pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
 ```
+
+## 8. Another way to use AutoVEM2
+
+AutoVEM2 installed by conda may not be the lastest. Therefore, after your have installed the dependencies, you can download the source code. And run AutoVEM2 as follows:
+
+```
+cd ${PATH}/AutoVEM2
+python run.py --help
+python run.py call --help
+python run.py analysis --help
+python run.py plot --help
+python run.py pipeline --help
+```
+

@@ -77,6 +77,11 @@ def create_index(path, refsequence):
     :param refsequence: fasta fomat reference sequence file
     '''
     os.system('bowtie2-build -f %s %s/index' % (refsequence, path))
+    os.system(f"samtools faidx {refsequence}")
+    prefix, suffix = os.path.split(refsequence)
+    fileName = ".".join(suffix.split(".")[:-1]) + ".dict"
+    outFile = os.path.join(prefix, fileName)
+    os.system(f"samtools dict {refsequence} > {outFile}")
 
 def genome_quality_control(file, referenceLength=None, a=None, b=None, c=None):
     '''
@@ -257,29 +262,30 @@ def sort(file, directory):
     '''
     bamFile = os.path.join(directory, 'temp.bam')
     os.system('samtools sort %s > %s' % (file, bamFile))
-
+    os.system(f"samtools index {bamFile}")
 
     return bamFile
 
 def mpileup(file, directory, refsequence):
     '''
-    bam format -> vcf format
+    add @RG to the bam file
 
     :param file: temp.bam
     :param directory: temp directory
     :returns vcfFile: temp.vcf
     '''
-    vcfFile = os.path.join(directory, 'temp.vcf')
-    os.system('bcftools mpileup %s --fasta-ref %s > %s' % (file, refsequence, vcfFile))
+    
+    addHeader = os.path.join(directory, "temp_addheader.bam")
+    os.system(f"picard AddOrReplaceReadGroups -I {file} -O {addHeader} -R {refsequence} --RGID Sample --RGLB AMPLICON --RGPL ILLUMINA --RGPU unit1 --RGSM Sample")
+    os.system(f"samtools index {addHeader}")
 
+    return addHeader
 
-    return vcfFile
-
-def call(vcfFile, directory, ploidy, a=None):
+def call(vcfFile, directory, refSeq, a=None):
     '''
     call SNPs
 
-    :param vcfFile: temp.vcf
+    :param vcfFile: temp_addheader.bam
     :param directory: temp directory
     :param ploidy: ploidy.txt
     :param path: output directory
@@ -292,7 +298,7 @@ def call(vcfFile, directory, ploidy, a=None):
 
 
     # can add [--threads <int>] to use multithreading
-    os.system('bcftools call --ploidy 1 -vm %s -o %s' % (vcfFile, snp_indel_file_path))
+    os.system(f'gatk HaplotypeCaller -I {vcfFile} -O {snp_indel_file_path} -R {refSeq} -ploidy 1')
     if a is None:
         os.system('vcftools --vcf %s --recode --remove-indels --stdout > %s' % (snp_indel_file_path, snp_file_path))
         return 0, snp_file_path
@@ -435,7 +441,7 @@ def module1(inputDirectory, outputDirectory, reference, collection_time="yes", l
                 samFile = align(splitfasta, indexDirectory, tempdirectory)
                 bamFile = sort(samFile, tempdirectory)
                 vcfFile = mpileup(bamFile, tempdirectory, refsequence)
-                filter, vcfSnpFile = call(vcfFile, tempdirectory, ploidy, a=number_indels)
+                filter, vcfSnpFile = call(vcfFile, tempdirectory, refsequence, a=number_indels)
                 if filter == -1:
                     if os.path.exists(tempdirectory):
                         shutil.rmtree(str(tempdirectory))
