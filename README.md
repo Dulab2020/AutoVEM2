@@ -6,7 +6,7 @@ Program: AutoVEM2 (works on Linux machine)
 
 Description: Virus key mutations and epidemic trends analysis tool
 
-Version: V2.0
+Version: V2.1
 
 Authors: Xibinbin
 
@@ -20,46 +20,49 @@ Year: 2021
 
 License: Released under GNU General Public License
 
+**Citation**
+
+AutoVEM2 can be cited with the following paper:
+
+Xi, B., Chen, Z., Li, S., Liu, W., Jiang, D., Bai, Y., ... & Du, H. (2021). AutoVEM2: A flexible automated tool to analyze candidate key mutations and epidemic trends for virus. *Computational and structural biotechnology journal*, *19*, 5029-5038.
+
 ### 1. Prerequisite
 
-- Python(v3.8.6 or higher) with pandas, numpy and matplotlib packages(latest version)
+- Python(v3.8.6 or higher) with pandas, numpy and matplotlib packages (latest version)
 - Java Runtime Environment (should meet the requirements of Haploview tool)
+
+**Question**: How could I test whether the Java Runtime Environment meet the requirements of Haploview tool?
+
+**Answer**: Run the following command and see if the help information could be outputted correctly:
+
+```
+cd ${PATH}/AutoVEM2
+java -jar Haploview.jar -n -h
+```
 
 ### 2. Dependencies
 
-Bowtie2 (v2.4.2), SAMtools (v1.10), BCFtools (v1.10.2) , VCFtools (v0.1.16), picard (v2.26.11), and GATK4 (v4.2.5.0) are required. Please make sure you have installed these tools and add them to the environment variables globally before using AutoVEM2. You can visit the following websites to install them:
-
-Bowtie2: http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
-
-SAMtools: http://samtools.sourceforge.net/
-
-BCFtools: http://samtools.github.io/bcftools/bcftools.html
-
-VCFtools: http://vcftools.sourceforge.net/
+Bowtie2 (v2.4.2), SAMtools (v1.10), VCFtools (v0.1.16), Picard AddOrReplaceReadGroups (v2.27.4), and GATK4 HaplotypeCaller are required. Please make sure you have installed these tools and add them to the environment variables globally before using AutoVEM2. 
 
 Haploview.jar (v4.2) has been provided. And please make sure the Java Runtime Environment meets the requirements of Haploview. For more details about Haploview, please visit: https://www.broadinstitute.org/haploview/tutorial
 
 ### 3. Installation
 
-AutoVEM2 and its dependencies can be easily installed through conda, we strongly recommend you create a new conda environment, using the following command:
+AutoVEM2 needn't to be installed and can be used directly. Once your have installed the dependencies, you can download the source code and run AutoVEM2 as follows:
 
-```shell
-conda create -n autovem2 -c bioconda -c dulab2020 -c conda-forge autovem2
 ```
-
-or you can also install autovem2 in the present conda environment:
-
-```shell
-conda install -c bioconda -c dulab2020 -c conda-forge autovem2
+git clone https://github.com/Dulab2020/AutoVEM2.git
+cd ${PATH}/AutoVEM2
+python run.py --help
+python run.py call --help
+python run.py analysis --help
+python run.py plot --help
+python run.py pipeline --help
 ```
-
-**note:**
-
-You **must** specify conda channels  using **-c bioconda -c dulab2020 -c conda-forge** to make sure the latest version of samtools to be installed, or you may get error messages about *libcrypto.so.1.0.0* when you run autovem2.
 
 ### 4. Format of Genome Sequences
 
-All genome sequences can be put in a fasta format file or several fasta format files. And put the file(s) into a directory. The directory will be as the input of AutoVEM2.
+All genome sequences can be put into a fasta format file or several fasta format files. And put the file(s) into a directory. The directory will be as the input of AutoVEM2.
 
 Format of virus genome sequence is as follows:
 
@@ -68,7 +71,7 @@ Format of virus genome sequence is as follows:
 Whole_genome_sequence
 ```
 
-***Explanation in detail***
+***Explanations in detail***
 
 ` virus_name`: Name of the virus, customizable. 
 
@@ -99,24 +102,13 @@ ACTACAATAATTCATGTATAAAACTAAGGGCGTAACCGAAATCGGTTGA...ATGC
 
 ### 5. Usage
 
-```
-#If you install autovem2 through conda, activate the conda environment which you installed autovem2 in
-conda activate autovem2
-#Then you can use autovem2, for more help messages, use the following command lines
-autovem2 -h
-autovem2 pipeline -h
-autovem2 call -h
-autovem2 analysis -h
-autovem2 plot -h
-```
-
-AutoVEM2 has three modules, including `call` module, `analysis` module, and `plot` module which can be used modularly or as a whole. The `pipeline`  combines the three modules to perform a complete analysis function. But we recommend using AutoVEM2 modularly which can separate the whole analysis  into the following three steps:
+AutoVEM2 has three modules, including `call` module, `analysis` module, and `plot` module, which can be used modularly or as a whole. The `pipeline`  combines the three modules to perform a complete analysis function. But we recommend using AutoVEM2 modularly which can separate the whole analysis  into the following three steps:
 
 - ` call`: **The first step**. This module will carry out quality control of the genomes and find all **SNV** mutations and stored them into the ` snp_merged.tsv` file which is the input file of the `analysis` module. And this module will also produce a ` sequences_information.tsv` file. It stores the summary result of quality control. 
 
   For more details, please use ` python run.py call -h` command line.
 
-- ` analysis`: **The second step**. This module will obtain key mutation sites and find haplotype of every sequence. Haplotype information is stored into the ` data_plot.tsv` file. This file is the input file of the `plot` module.
+- ` analysis`: **The second step**. This module will obtain key mutation sites and find haplotype of every sequence. Haplotype information is stored in the ` data_plot.tsv` file. This file is the input file of the `plot` module.
 
   For more details, please use ` python run.py analysis -h` command line.
 
@@ -128,7 +120,7 @@ AutoVEM2 has three modules, including `call` module, `analysis` module, and `plo
 
 ` snp_merged.tsv` 	Produced by the ` call` module, ` \t` delimited. It stores the information of all **SNV** mutations of all genome sequences. 
 
-> **Id**: the identifier of a sequence 
+> **Id**: the unique identifier of a sequence 
 >
 > **Date**: collection date of the sequence 
 >
@@ -196,8 +188,6 @@ AutoVEM2 has three modules, including `call` module, `analysis` module, and `plo
 
 ![image-20210504092628923](https://github.com/Dulab2020/AutoVEM2/blob/main/images/image-20210504092628923.png)
 
-
-
 ` hap_date.pdf`	Produced by the `plot` module . Show the epidemic trends of haplotypes.
 ![image-20210504092426244](https://github.com/Dulab2020/AutoVEM2/blob/main/images/image-20210504092426244.png)
 
@@ -209,36 +199,23 @@ An example has been provided, you can download it from the github repo to your l
 git clone https://github.com/Dulab2020/AutoVEM2.git
 cd ../AutoVEM2
 # call module
-# This command can produced the snp_merged and sequences_information files
+# This command can produced the snp_merged.tsv and sequences_information.tsv files
 # All output by call command will be stored in the Example/call folder
-autovem2 call --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --output Example/call
+python run.py call --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --output Example/call
 
 # analysis module
-# This command can produced the snp_sites.tsv, plot.LD.PNG, haplotypes, hap_mutations.pdf # and data_plot.tsv files
+# This command can produced the snp_sites.tsv, plot.LD.PNG, haplotypes.tsv, 
+# hap_mutations.pdf and data_plot.tsv files
 # All output by analysis command will be stored in the Example/analysis folder
-autovem2 analysis --input Example/call/snp_merged.tsv --ref Example/reference/ref_SARS-CoV-2.fa --frequency 0.2 --output Example/analysis
+python run.py analysis --input Example/call/snp_merged.tsv --ref Example/reference/ref_SARS-CoV-2.fa --frequency 0.2 --output Example/analysis
 
 # plot module
 # This command can produced the hap_date.pdf file
 # All output by plot command will be stored in the Example/plot folder
-autovem2 plot --input Example/analysis/data_plot.tsv --days 7 --output Example/plot
+python run.py plot --input Example/analysis/data_plot.tsv --days 7 --output Example/plot
 
 # integrate the three into the pipeline module
 # This command can produced all files mentioned above
 # All output by pipeline command will be stored in the Example/pipeline folder
-autovem2 pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
+python run.py pipeline --input Example/genomes --ref Example/reference/ref_SARS-CoV-2.fa --length 29000 --number_n 15 --number_db 50 --number_indels 2 --frequency 0.2 --days 7 --output Example/pipeline
 ```
-
-## 8. Another way to use AutoVEM2
-
-AutoVEM2 installed by conda may not be the lastest. Therefore, after your have installed the dependencies, you can download the source code. And run AutoVEM2 as follows:
-
-```
-cd ${PATH}/AutoVEM2
-python run.py --help
-python run.py call --help
-python run.py analysis --help
-python run.py plot --help
-python run.py pipeline --help
-```
-

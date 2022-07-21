@@ -13,113 +13,84 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.patches as mpatches
 
-def snp_filter(file, directory, length, sites=None, fre=None):
+def snp_filter(file, directory, sites=None, fre=None):
     '''
     filter SNP sites
 
-    :param file: snp_merged.tsv
-    :param directory: output directory
-    :param sites: snp sites that you are interested
-    :param length: int, length of reference genome sequence
+    :param file: the absolute path of the snp_merged.tsv
+    :param directory: the absolute path of the output directory
+    :param sites: snp sites that of interest
     :param fre: frequency of snp sites that more than fre will be obtained, default 0.05
     :returns snp_pos, snp_ref_alt(dict)
     '''
-    prefix = directory[:]
-    suffix = "snp_sites.tsv"
+    ## storage the retained SNP sites
+    ## check and create the file
     snp_sites = os.path.join(directory, 'snp_sites.tsv')
     if os.path.exists(snp_sites):
-        print("%s already exists."%snp_sites)
-        i = 0
-        while True:
-            i = i + 1
-            temp = os.path.join(prefix, r'#%s.%s#'%(suffix,i))
-            if os.path.exists(temp):
-                continue
-            else :
-                os.rename(snp_sites, temp)
-                print("Back up %s to %s"%(snp_sites, temp))
-                break
-
-
+        os.system(f"rm -rf {snp_sites}")
+    ## read the SNV files
     df = pd.read_csv(file, sep='\t')
+    ## count the number of sequences
     ids = df['Id'].unique().tolist()
     n_genome = len(ids)
-    #print(n_genome)
-
-
+    ## calculate the mutation frequency at each position
     counts = df['Position'].value_counts()
     frequency = counts/n_genome
     frequency = frequency.round(decimals=4)
-    frequency = frequency.sort_index(ascending=True)
+    frequency = frequency.sort_index()
+    frequency = frequency[frequency.index!=0]
     snp_dict = dict(zip(frequency.index.tolist(), frequency.values.tolist()))
-    for item in list(range((length+1))):
-        if item not in snp_dict:
-            snp_dict[item] = 0.0
-    if 0 in snp_dict:
-        snp_dict.pop(0)
-
-
-    snp_pos = list()    # important sites
+    ## get the filtered SNP positions
+    snp_pos = list()
+    ## sites with mutation frequency bigger than the given frequency or default frequency (0.05) will be retained.
     if sites is None:
         if fre is None:
-            fre = 0.05
-        for key,item in snp_dict.items():
-            if item>=fre:
-                snp_pos.append(key)
+            snpSites = frequency[frequency.values>=0.05]
+            snp_pos = snpSites.index.tolist()
+        else:
+            snpSites = frequency[frequency.values>=fre]
+            snp_pos = snpSites.index.tolist()
+    ## if provided sites, these sites will be retained
     else:
-        if fre is None:
-            for item in sites:
-                if item in snp_dict:
-                    snp_pos.append(item)       
-        else:
-            for item in sites:
-                if ((item in snp_dict) and (snp_dict[item]>=fre)):
-                    snp_pos.append(item)
-                
+        snp_pos = sites
+    ## whether the number of sites bigger than 1 and less than 500
     if len(snp_pos)<=1:
-        print('There are no or too little sites that meet your requirements(<2).')
+        print('There are no or too little sites that meet your requirements.')
         sys.exit()
-    print("The following %s mutations meet you requirements:"%len(snp_pos), end=' ')
-    for item in snp_pos:
-        print(item, end=' ')
-    print()
-    print("For more information about these sites, please view the %s file"%snp_sites)
-    time.sleep(5)
-
-
-    snp_pos.sort()
-    snp_ref_alt = dict()
-    for item in snp_pos:
-        df2 = df[df['Position']==item]
-        if len(df2.index)==0:
-            Ref = "N"
-            Alt = "N"
-        else:
-            Ref = df2['Ref'].value_counts().index.tolist()[0]
-            Alt = df2['Alt'].value_counts().index.tolist()[0]
-        snp_ref_alt[item] = [Ref, Alt, snp_dict[item]]
-    header = 'Position\tRef\tAlt\tFrequency\n'
-    with open(snp_sites, 'a') as fhand:
-        fhand.write(header)
-        for key, item in snp_ref_alt.items():
-            record = str(key)+'\t'+str(item[0])+'\t'+str(item[1])+'\t'+str(item[2])+'\n'
-            fhand.write(record)
-
-
-    n_snp = len(snp_ref_alt) 
-    if n_snp>=500:
-        print('There are too many sites meet your requirements (there are %s, should <500).'%n_snp)
+    elif len(snp_pos)>=500:
+        print(f'There are too many sites meet your requirements (should be less than 500).')
         print('Please increase the frequency to filter out more sites or specify no more than 500 sites')
         sys.exit()
+    else:
+        snp_pos.sort()
+        ## print the site retained
+        out_line = ""
+        for site in snp_pos:
+            out_line = out_line + " " + str(site)
+        print(f"The following sites will be retained: {out_line}")
 
-
-    return snp_pos, snp_ref_alt
+        ## get the mutation information of the retained sites
+        snp_ref_alt = dict()
+        for snp in snp_pos:
+            df2 = df[df['Position']==snp]
+            Ref = df2['Ref'].value_counts().index.tolist()[0]
+            Alt = df2['Alt'].value_counts().index.tolist()[0]
+            snp_ref_alt[snp] = (Ref, Alt, snp_dict[snp])
+        ## write the information of retained sites to the record file
+        header = 'Position\tRef\tAlt\tFrequency\n'
+        with open(snp_sites, 'a') as fhand:
+            fhand.write(header)
+            for pos, (Ref, Alt, Fre) in snp_ref_alt.items():
+                record = str(pos) + '\t' + Ref + '\t' + Alt + '\t' + str(Fre) + '\n'
+                fhand.write(record)
+            
+        return snp_pos, snp_ref_alt
 
 def ref_haplotype(position, refsequence):
     '''
     reference haplotype sequence
 
-    :param position：snp positions, int
+    :param position: snp positions, int
     :param refsequence: reference genome sequence
     :returns referenceHaplotype
     '''
@@ -128,111 +99,85 @@ def ref_haplotype(position, refsequence):
         for line in fhand.readlines():
             line = line.strip()
             line = line.replace(' ','')
+            line = line.replace('\t','')
             if len(line)==0:
-                continue
-            if line[0] == '>':
-                continue
-            else :
+                pass
+            elif line[0] == '>':
+                pass
+            else:
                 referenceGenomeSequence = referenceGenomeSequence + line
 
     referenceHaplotype = str()
-    for item in position:
-        referenceHaplotype = referenceHaplotype + referenceGenomeSequence[item-1]
+    for pos in position:
+        referenceHaplotype = referenceHaplotype + referenceGenomeSequence[pos-1]
     return referenceHaplotype
 
-def genome_haplotype(file, position, referenceHaplotype, directory):
+def genome_haplotype(file, positions, referenceHaplotype, snp_alt, directory):
     '''
     get haplotype sequence of genome
 
     :param file: snp_merged.tsv
-    :param position: mutation positions
+    :param positions: mutation positions
     :param referenceHaplotype: reference haplotype sequence
+    :param snp_alt: the snp_ref_alt_fre dict, {pos:[ref, alt, fre]}
     :param directory: output directory
     :returns filePath: data.tsv
     '''
-    position_ref = dict(zip(position, referenceHaplotype))
+    ## the file stores the haplotype sequence of each sequence
     filePath = os.path.join(directory, 'data.tsv')
-    prefix = directory[:]
-    suffix = 'data.tsv'
     if os.path.exists(filePath):
-        print("%s already exists."%filePath)
-        i = 0
-        while True:
-            i = i + 1
-            tmp = os.path.join(prefix,r"#%s.%s#"%(suffix, i))
-            if os.path.exists(tmp):
-                continue
-            else:
-                os.rename(filePath, tmp)
-                print("Back up %s to %s"%(filePath, tmp))
-                break
-    header = "Id\tDate\tCountry\tHap\n"
-    with open(filePath, "a") as fhand:
-        fhand.write(header)
-
+        os.system(f"rm -rf {filePath}")
+    ## read the mutation file
     df = pd.read_csv(file, sep='\t')
-    ids = df['Id'].unique().tolist()
-
-    records = list()
-    for idx in ids:
-        hapSeq = ""
-
-        df1 = df[df['Id']==idx]
-
-        date = df1['Date'].value_counts().index.tolist()
-        if len(date)==0:
-            date = "NA"
-        else:
-            date = date[0]
-        country = df1['Country'].value_counts().index.tolist()
-        if len(country)==0:
-            country = "NA"
-        else:
-            country = country[0]
-        
-        positions = df1["Position"].tolist()
-        positions = list([int(x) for x in positions])
-        position_alt = dict(zip(positions, df1["Alt"].tolist()))
-
-        for site, ref in position_ref:
-            site = int(site)
-            if site in position_alt:
-                hapSeq = hapSeq + position_alt[site]
+    ## used to store the meta information of the sequences
+    Date = []
+    Country = []
+    Case_id = []
+    snp_positions = []
+    Haplotypes = []
+    ## group according to the Id columns
+    group = df.groupby("Id")
+    j = 0
+    for idx, df_s in group:
+        ## print processing information
+        j = j + 1
+        print(f"[INFO]: Obtaining the haplotype sequence of the {j}th sequence: {idx}")
+        date = df_s['Date'].value_counts().index.tolist()[0]
+        country = df_s['Country'].value_counts().index.tolist()[0]
+        mutation_positions = set(df_s["Position"].tolist())
+        hap_seq = ""
+        for i, snp in enumerate(positions):
+            if snp in mutation_positions:
+                hap_seq = hap_seq + snp_alt[snp][1]
             else:
-                hapSeq = hapSeq + ref
-        tmp = str(idx) + "\t" + str(date) + "\t" + str(country) + "\t" + str(hapSeq) + "\t"
-        records.append(tmp)
+                hap_seq = hap_seq + referenceHaplotype[i]
 
-    with open(filePath, "a") as fhand:
-        for line in records:
-            fhand.write(line)
+        Case_id.append(idx)
+        Date.append(date)
+        Country.append(country)
+        Haplotypes.append(hap_seq)
+
+    data_df = pd.DataFrame(data={'Id': Case_id,
+                                   'Date': Date,
+                                   'Country':Country,
+                                   'Hap': Haplotypes})
+    data_df.to_csv(filePath, sep='\t', index=False)
 
     return filePath
 
-def block_file(position, directory):
+def block_file(positions, directory):
     '''
     block.txt
 
-    :param position: snp_pos
+    :param positions: snp_pos
     :param directory: output directory
-    :returns blockFile：block.txt
+    :returns blockFile: block.txt
     '''
-    num = len(position)
+    num = len(positions)
     blockFile = os.path.join(directory, 'block.txt')
-    prefix = directory[:]
-    suffix = 'block.txt'
     if os.path.exists(blockFile):
-        print("%s already exists."%blockFile)
-        i = 0
-        while True:
-            i = i + 1
-            tmp = os.path.join(prefix,r"#%s.%s#"%(suffix, i))
-            if os.path.exists(tmp):
-                continue
-            else:
-                os.rename(blockFile, tmp)
-                print("Back up %s to %s"%(blockFile, tmp))
-                break
+        os.system(f"rm -rf {blockFile}")
+    ## write the output block
     with open(blockFile, 'a') as fhand:
         for i in list(range(num)):
             fhand.write(str(i+1))
@@ -240,30 +185,19 @@ def block_file(position, directory):
     
     return blockFile
 
-def map_file(position, directory):
+def map_file(positions, directory):
     '''
     snp.info
 
-    :param position: snp_ref_alt
+    :param positions: snp_ref_alt
     :returns mapFile: snp.info
     '''
     mapFile = os.path.join(directory, 'snp.info')
-    prefix = directory[:]
-    suffix = 'snp.info'
     if os.path.exists(mapFile):
-        print("%s already exists."%mapFile)
-        i = 0
-        while True:
-            i = i + 1
-            tmp = os.path.join(prefix,r"#%s.%s#"%(suffix, i))
-            if os.path.exists(tmp):
-                continue
-            else:
-                os.rename(mapFile, tmp)
-                print("Back up %s to %s"%(mapFile, tmp))
-                break
+        os.system(f"rm -rf {mapFile}")
+    ## write the maker to the snp.info file
     with open(mapFile, 'a') as fhand:
-        for key, item in position.items():
+        for key, item in positions.items():
             name = str(item[0])+str(key)+str(item[1])
             record = name + '\t' + str(key) + '\n'
             fhand.write(record)
@@ -272,42 +206,35 @@ def map_file(position, directory):
 
 def ped_file(file, directory):
     '''
-    生成ped格式文件
+    snp.ped
 
     :param file: data.tsv
     :param directory: output directory
     :returns pedFile: snp.ped
     '''
+    ## the snp.ped file
     pedFile = os.path.join(directory, 'snp.ped')
-    prefix = directory[:]
-    suffix = 'snp.ped'
     if os.path.exists(pedFile):
-        print("%s already exists."%pedFile)
-        i = 0
-        while True:
-            i = i + 1
-            tmp = os.path.join(prefix,r"#%s.%s#"%(suffix, i))
-            if os.path.exists(tmp):
-                continue
-            else:
-                os.rename(pedFile, tmp)
-                print("Back up %s to %s"%(pedFile, tmp))
-                break
+        os.system(f"rm -rf {pedFile}")
+
+    df = pd.read_table(file)
+    Ids = df.Id.tolist()
+    HaplotypeSequence = df.Hap.tolist()
     with open(pedFile, 'a') as f:
-        with open(file, 'r') as fhand:
-            i = 0
-            for line in fhand.readlines():
-                i = i + 1
-                if i == 1:
-                    continue
-                line = line.rstrip()
-                line = line.split('\t')
-                record = line[0]+'\t'+line[0]+'\t'+'0'+'\t'+'0'+'\t'+'0'+'\t'+'0'
-                for item in line[-1]:
-                    record = record + '\t' + item + '\t' + item
-                record = record + '\n'
-                f.write(record)
-    
+        record = ""
+        constantString = '\t0\t0\t0\t0\t'
+        for i,idx in enumerate(Ids):
+            hap = ""
+            hap_seq = HaplotypeSequence[i]
+            genotype = list()
+            for base in hap_seq:
+                genotype.append(base)
+                genotype.append(base)
+            hap = "\t".join(genotype)
+            record = str(i) + "\t" + str(idx) + constantString + hap + "\n"
+            f.write(record)
+            record = ""
+
     return pedFile
 
 def linkage_analysis(ped, mapf, block, directory):
@@ -320,25 +247,15 @@ def linkage_analysis(ped, mapf, block, directory):
     :param directory: output directory
     :returns haplotypesFile: plot.CUSTblocks
     '''
-
-    temp = os.path.join(directory, 'plot')
+    if directory[-1] == "/":
+        temp = directory + "plot"
+    else:
+        temp = directory + "/plot"
     haplotypesFile = os.path.join(directory, 'plot.CUSTblocks')
-    prefix = directory[:]
-    suffix = 'plot.CUSTblocks'
     if os.path.exists(haplotypesFile):
-        print("%s already exists."%haplotypesFile)
-        i = 0
-        while True:
-            i = i + 1
-            tmp = os.path.join(prefix,r"#%s.%s#"%(suffix, i))
-            if os.path.exists(tmp):
-                continue
-            else:
-                os.rename(haplotypesFile, tmp)
-                print("Back up %s to %s"%(haplotypesFile, tmp))
-                break
+        os.system(f"rm -rf {haplotypesFile}")
 
-    os.system('java -jar %s -n -skipcheck -pedfile %s -info %s -blocks %s -png -out %s' % (call.haploview, ped, mapf, block, temp))
+    os.system(f'java -jar {call.haploview} -n -skipcheck -pedfile {ped} -info {mapf} -blocks {block} -png -out {temp}')
 
     return haplotypesFile
 
@@ -352,96 +269,52 @@ def haplotyper(file, dataFile, directory):
     :returns dataPlot, haplotypes: data_plot.tsv
     '''
     dataPlot = os.path.join(directory, 'data_plot.tsv')
-    prefix = directory[:]
-    suffix = 'data_plot.tsv'
     if os.path.exists(dataPlot):
-        print("%s already exists."%dataPlot)
-        i = 0
-        while True:
-            i = i + 1
-            tmp = os.path.join(prefix,r"#%s.%s#"%(suffix, i))
-            if os.path.exists(tmp):
-                continue
-            else:
-                os.rename(dataPlot, tmp)
-                print("Back up %s to %s"%(dataPlot, tmp))
-                break
-    haplotypes = os.path.join(directory, 'haplotypes.tsv')
-    prefix = directory[:]
-    suffix = 'haplotypes.tsv'
-    if os.path.exists(haplotypes):
-        print("%s already exists."%haplotypes)
-        i = 0
-        while True:
-            i = i + 1
-            tmp = os.path.join(prefix,r"#%s.%s#"%(suffix, i))
-            if os.path.exists(tmp):
-                continue
-            else:
-                os.rename(haplotypes, tmp)
-                print("Back up %s to %s"%(haplotypes, tmp))
-                break
-    nt_dict = {'1': 'A', '2': 'C', '3': 'G', '4': 'T'}
+        os.system(f"rm -rf {dataPlot}")
     
+    haplotypes = os.path.join(directory, 'haplotypes.tsv')
+    if os.path.exists(haplotypes):
+        os.system(f"rm -rf {haplotypes}")
+        
+    nt_dict = {'1': 'A', '2': 'C', '3': 'G', '4': 'T'}
+    ## obtain the haplotype sequence
     hap_dict = dict()
     with open(file, 'r') as fhand:
-        i = -1
-        for line in fhand.readlines():
+        for i, line in enumerate(fhand.readlines()):
             sequence = ''
-            i = i + 1
             if i == 0:
-                continue 
-            hap = 'H' + str(i)
-            sequence_list = line.split()
-            sequence_num = sequence_list[0]
-            for num in sequence_num:
-                sequence = sequence + nt_dict[num]
-            hap_dict[sequence] = hap
-
-    header = 'Id\tDate\tCountry\tHap\tName\n'
-    with open(dataPlot, 'a') as f:
-        f.write(header)
-        with open(dataFile, 'r') as fhand:
-            i = 0
-            for line in fhand.readlines():
-                i = i + 1
-                if i == 1:
-                    continue
-                line = line.rstrip()
-                line = line.split('\t')
-                hap = line[-1]
-                record = line[0]+'\t'+line[1]+'\t'+line[2]+'\t'+line[3]+'\t'
-                if hap in hap_dict:
-                    name = hap_dict[hap]
+                pass
+            else:
+                hap = 'H' + str(i)
+                sequence_num = line.split()[0]
+                proportion = float(line.split()[1][1:-1])
+                ## if proportion less than 0.01, it means the variant population is too small
+                ## so this variant population will be filtered out
+                if proportion < 0.01:
+                    break
                 else:
-                    name = 'other'
-                record = record + name + '\n'
-                f.write(record)
+                    ## get the haplotype sequence and name
+                    for num in sequence_num:
+                        sequence = sequence + nt_dict[num]
+                    hap_dict[sequence] = [hap, proportion]
+
+    df = pd.read_table(dataFile)
+    Name = list()
+    for hapSeq in df.Hap.tolist():
+        if hapSeq in hap_dict:
+            Name.append(hap_dict[hapSeq][0])
+        else:
+            Name.append("other")
+    df["Name"] = Name
+    df.to_csv(dataPlot, sep="\t", index=None)
     
-    df = pd.read_csv(dataPlot, sep='\t')
-    num_case = len(df.index)
-    haps = df.Name.unique().tolist()
-
-    haps_sorted = []
-    for i in list(range(len(haps)-1)):
-        h = 'H' + str(i+1)
-        haps_sorted.append(h)
-    haps_sorted.append("other")
-    print(haps_sorted)
-
-    header = 'Name\tSequence\tFrequency\n'
+    headers = "Name\tSequence\tFrequency\n"
     with open(haplotypes, 'a') as fhand:
-        fhand.write(header)
-        for item in haps_sorted:
-            df2 = df[df.Name==item]
-            number = len(df2.index)
-            frequency = number/num_case
-            frequency = round(frequency, 4)
-            seq = df2.Hap.unique().tolist()[0]
-            if item == "other":
-                seq = "NA"
-            record = str(item)+'\t'+str(seq)+'\t'+str(frequency)+'\n'
-            fhand.write(record)
+        fhand.write(headers)
+        for key, value in hap_dict.items():
+            tem = ''
+            tem = value[0] + '\t' + key + '\t' + str(value[1]) + "\n"
+            fhand.write(tem)
 
     return dataPlot
 
@@ -562,48 +435,50 @@ def module2(file, directory, refsequence, sites=None, frequency=None):
     '''
     mutation analysis
 
-    :param file: snp_merged.tsv file produced by AutoVEM2 call
-    :param directory: output directory
-    :param refsequence: reference genome sequence
-    :param sites: mutation sites that you are interested
+    :param file: the absolute path of the snp_merged.tsv file produced by AutoVEM2 call
+    :param directory: the absolute path of the output directory
+    :param refsequence: the absolute path of the reference genome sequence
+    :param sites: mutation sites that of interest
     :param frequecy: mutations with mutation frequecy lower than the given frequency will be filtered out, default 0.05
     '''
-    # print(sites)
-    # print(directory)
-    # print(refsequence)
-    # print(sites)
-    # print(frequency)
-    if not os.path.exists(os.path.abspath(file)):
-        print("Error: can't find the %s file"%(os.path.abspath(file)))
-        sys.exit()
-    if not os.path.exists(os.path.abspath(refsequence)):
-        print("Error: can't find the %s file"%(os.path.abspath(file)))
-        sys.exit()
-        
+    ## get the reference genome sequence and the length of the reference genome sequence
+    reference = ''
     with open(refsequence, 'r') as fhand:
-        reference = ''
         for line in fhand.readlines():
             line = line.strip()
             line = line.replace(' ','')
+            line = line.replace("\t", "")
             if len(line)==0:
                 continue
-            if line[0]==">":
+            elif line[0]==">":
                 continue
             else:
                 reference = reference + line
     length_genome = len(reference)
-    # print(length_genome)
+    ## check whether the reference genome sequence exists
     if length_genome == 0:
-        print('The %s file has no genome sequence'%refsequence)
+        print(f'The {refsequence} file has no genome sequence')
         sys.exit()
-
+    ## check whether the values of the --sites is valid
+    if sites is None:
+        pass
+    else:
+        sites.sort()
+        minimum = sites[0]
+        if minimum<=0 or sites[-1]>length_genome:
+            print("Value of the --sites argument should be bigger than 0 and no bigger than the length of the reference genome.")
+            sys.exit()
+    ## obtaining the specific sites
     print('Obtaining specific sites...')
-    snp_position, snp_ref_alt = snp_filter(file, directory, length_genome, sites=sites, fre=frequency)
+    snp_position, snp_ref_alt = snp_filter(file, directory, sites=sites, fre=frequency)
     print('Done!')
-
-    print('Obtaining reference haplotype sequence and data.tsv file...')
+    ## get the reference haplotype sequence
+    ## get the haplotype sequence of each genome seqeunce
+    print('Obtaining the reference haplotype sequence ...')
     ref_haplotype_sequence = ref_haplotype(snp_position, refsequence)
-    dataFile = genome_haplotype(file, snp_position, ref_haplotype_sequence, directory)
+    print("Done!")
+    print("Obtaining the haplotype sequence of each genome sequence")
+    dataFile = genome_haplotype(file, snp_position, ref_haplotype_sequence, snp_ref_alt, directory)
     print('Done!')
 
     print('Obtaining block.txt file...')
@@ -620,19 +495,19 @@ def module2(file, directory, refsequence, sites=None, frequency=None):
 
     print('Linkage analyzing...')
     haplotypesFile = linkage_analysis(pedFile, mapFile, blockFile, directory)
-    os.remove(mapFile)
-    os.remove(pedFile)
-    os.remove(blockFile)
     print('Done!')
     
     print('Haplotyping......')
-    data_plot = haplotyper(haplotypesFile, dataFile, directory)
-    os.remove(haplotypesFile)
-    os.remove(dataFile)
+    data_plot  = haplotyper(haplotypesFile, dataFile, directory)
     print('Done!')
-
-    print('Plotting hap_mutations...')
-    hap_plot(data_plot, file, snp_position, directory, length_genome)
-    print('Done!')
+    try:
+        os.remove(mapFile)
+        os.remove(pedFile)
+        os.remove(blockFile)
+        os.remove(haplotypesFile)
+        os.remove(dataFile)
+        print("Having done haplotyping and linkage analysis!")
+    except:
+        print("Having done haplotyping and linkage analysis!")
 
     return data_plot

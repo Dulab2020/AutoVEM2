@@ -15,18 +15,24 @@ logging = os.path.join(softDirectory, 'out.log')
 
 def extract_sequence(directory, genomeDirectory):
     '''
-    :param directory: input directory
-    :param genomeDirectory: genome directory
+    extract each genome sequence from the multi-sequences files
+
+    :param directory: the input directory
+    :param genomeDirectory: the absolute path of output genome files directory
+
     :return filesPath
     '''
-    files = os.listdir(directory)
+    ## get the absolute path of the multi-sequences fasta files
+    in_dir = os.path.abspath(directory)
+    files = os.listdir(in_dir)
     files_list = list()
     for file in files:
-        file = os.path.join(directory, file)
-        if os.path.isfile(file):
-            files_list.append(file)
-
-
+        temp = os.path.join(in_dir, file)
+        if os.path.isfile(temp):
+            files_list.append(temp)
+        else:
+            pass
+    ## pointer: indicates whether the sequence passed the quality control
     pointer = 1
     for file in files_list:
         with open(file, 'r') as fhand:
@@ -42,20 +48,21 @@ def extract_sequence(directory, genomeDirectory):
                     if len(line) != 4:
                         pointer = 1
                         continue
-                    id = line[1]
-                    id = id.split()[0]
-                    id = id + '.fa'
-                    id_path = os.path.join(genomeDirectory, id)
+                    idx = line[1]
+                    idx = "_".join(idx.split())
+                    idx = idx + '.fa'
+                    id_path = os.path.join(genomeDirectory, idx)
                     if os.path.exists(id_path):
                         pointer = 1
                         continue
-                    else :
+                    else:
                         with open(id_path, 'a') as f:
                             f.write(tmp+'\n')
                             pointer = 0
                             continue
-
                 if pointer == 0:
+                    line = line.replace(" ", "")
+                    line = line.replace("\t", "")
                     with open(id_path, 'a') as f:
                         f.write(line+'\n')
                         continue
@@ -70,18 +77,20 @@ def extract_sequence(directory, genomeDirectory):
 
     return filesPath
 
-def create_index(path, refsequence):
+def create_index(refsequence):
     '''
     create index
-    :param path: index directory
-    :param refsequence: fasta fomat reference sequence file
+
+    :param refsequence: the fasta fomat reference sequence file
     '''
-    os.system('bowtie2-build -f %s %s/index' % (refsequence, path))
+    ## bowtie2 index and .fai index
+    os.system(f'bowtie2-build -f {refsequence} {refsequence}')
     os.system(f"samtools faidx {refsequence}")
+    ## dict index
     prefix, suffix = os.path.split(refsequence)
     fileName = ".".join(suffix.split(".")[:-1]) + ".dict"
     outFile = os.path.join(prefix, fileName)
-    os.system(f"samtools dict {refsequence} > {outFile}")
+    os.system(f"samtools dict {refsequence} -o {outFile}")
 
 def genome_quality_control(file, referenceLength=None, a=None, b=None, c=None):
     '''
@@ -91,29 +100,31 @@ def genome_quality_control(file, referenceLength=None, a=None, b=None, c=None):
     :param a: length
     :param b: number of unknown bases, number_n
     :param c: number of degenerate bases, number_db
+
     :returns flag
     '''
-    if not os.path.getsize(file):
+    ## test whether the genome sequence is readable
+    try:
+        os.path.getsize(file)
+    except:
         return -1
-
+    ## get the nucleotide sequence of the genome
     with open(file, 'r') as fhand:
         genomeSequence = str()
         for line in fhand.readlines():
             line = line.strip()
-            line = line.replace(" ","")
             if len(line)==0:
                 continue
             if line[0]=='>':
                 continue
             genomeSequence = genomeSequence + line
-
-
     len_sequence = len(genomeSequence)
+
+    ## count the number of the unknown bases and the degenerate bases
     number_n = 0
     number_db = 0
-    letters = ['A', 'T', 'G', 'C', 'N']
+    letters = {'A', 'T', 'G', 'C', 'N'}
     for item in genomeSequence:
-        item = item.capitalize()
         if item == 'N':
             number_n = number_n + 1
         elif item not in letters:
@@ -150,7 +161,7 @@ def genome_quality_control(file, referenceLength=None, a=None, b=None, c=None):
         else:
             if (number_db/referenceLength) > c:
                 return -1  
-  
+
     return 0
 
 def split_sequence(file, path, filter="yes"):
@@ -160,19 +171,13 @@ def split_sequence(file, path, filter="yes"):
     :param file: genome sequence
     :param path: output directory
     :param filter: wether filter out sequences with unclear collection time, default yes
+
     :returns bassicMessage(dict), splitFile(file), tempAnalysisDirectory(temp directory):
     '''
-    China = ['taiwan', 'guangzhou', 'fujian', 'sichuan','wuhan', 'hangzhou', 'jiangsu', 
-             'shanghai','shandong', 'guangdong', 'foshan', 'nanchang', 'yingtan','hunan', 
-             'shangrao', 'yichun', 'beijing','jingzhou','pingxiang', 'shenzhen', 'lishui', 
-             'zhejiang', 'fuzhou', 'shaoxing', 'xinyu','yunnan', 'jiujiang', 'chongqing', 
-             'henan', 'hefei', 'fuyang', 'changzhou', 'jiangxi', 'ganzhou', 'hong kong', 
-             'macau', 'qingdao', 'liaoning', 'harbin', 'tianmen', 'jian']   
-    deletes = ['lion', 'cat', 'env', 'canine', 'tiger', 'mink']
-
-
+    ## get the header line of the genome sequence
+    ## get the nucleotide sequence of the genome sequence
     with open(file, 'r') as fhand:
-        head = str()
+        header = str()
         sequence = str()
         for line in fhand.readlines():
             line = line.rstrip()
@@ -180,51 +185,40 @@ def split_sequence(file, path, filter="yes"):
                 continue
             if line[0]==">":
                 header = line[:]
-                continue
-            line = line.replace(" ","")
-            sequence = sequence + line
+            else:
+                sequence = sequence + line
 
-
+    ## length of the genome sequence
     length = len(sequence)
-    # section = length//80
     subSequence = list()
-    # subSequence.append(head)
+
+    ## split the genome sequence into 100bp reads
+    ## the splice window is 100bp
+    ## the step is 1bp at each time
     for i in list(range(0,length-30)):
         if (i+100) >= length:
             sub = sequence[i:]
         else:
             sub = sequence[i:(i+100)]
-        sub = sub.upper()
         subSequence.append(sub)
-
-    # header = subSequence[0]
-    header = header.lstrip('>')
-    tmp = copy.deepcopy(header)
-    _, id, date, region = tmp.split('|')
-    # id = id.split()[0]
-
-    tmp1 = copy.deepcopy(date)
-    tmp1 = tmp1.lower()
-    tmp2 = copy.deepcopy(region)
-    tmp2 = tmp2.lower()
+    
+    ## get the metadata of the genome sequence
+    ## and test whether the region or collection date of the sequence is unknown
+    header = header[1:]
+    _, idx, date, region = header.split('|')
     if filter == "yes":
-        if ((tmp1=='na') or (tmp2=='na')):
-            return -1, -1, -1
-    # if tmp2 in deletes:
-    #     return -1, -1, -1
-    # if tmp2 in China:
-    #     region = 'China'
-        
-
-    # region = region.title()
+        if ((date.lower()=='na') or (region.lower()=='na')):
+            return -1, -1, -1  
+    ## get the basic information of the genome sequence
     basicMessage = dict()
-    basicMessage['Id'] = id
+    idx = "_".join(idx.split())
+    basicMessage['Id'] = idx
     basicMessage['Country'] = region
     basicMessage['Date'] = date
 
-
+    ## write the spliced reads to the fasta file
     splitFastaFileName = str(basicMessage['Id']) + '_split.fa'
-    tempAnalysisDirectory = os.path.join(path, str(id))
+    tempAnalysisDirectory = os.path.join(path, str(idx))
     if os.path.exists(tempAnalysisDirectory):
         shutil.rmtree(tempAnalysisDirectory)
     os.mkdir(tempAnalysisDirectory)
@@ -234,7 +228,6 @@ def split_sequence(file, path, filter="yes"):
             readName = ">read" + str(i) + "\n" + str(subsequence) + "\n"
             fhand.write(readName)
 
-
     return basicMessage, splitedFile, tempAnalysisDirectory
 
 def align(file, index, directory):
@@ -242,13 +235,12 @@ def align(file, index, directory):
     alignment
 
     :param file: XXX_split.fa
-    :param index: index directory
+    :param index: the reference genome sequence
     :param directory: temp directory
     :return temp.sam
     '''
     samFile = os.path.join(directory, 'temp.sam')
-    os.system('bowtie2 -f -x %s/index -U %s -S %s' % (index, file, samFile))
-
+    os.system(f'bowtie2 -f -x {index} -U {file} -S {samFile}')
 
     return samFile
     
@@ -261,22 +253,23 @@ def sort(file, directory):
     :return temp.bam
     '''
     bamFile = os.path.join(directory, 'temp.bam')
-    os.system('samtools sort %s > %s' % (file, bamFile))
+    os.system(f'samtools sort {file} > {bamFile}')
     os.system(f"samtools index {bamFile}")
 
     return bamFile
 
-def mpileup(file, directory, refsequence):
+def mpileup(file, directory):
     '''
     add @RG to the bam file
 
     :param file: temp.bam
     :param directory: temp directory
+
     :returns vcfFile: temp.vcf
     '''
     
     addHeader = os.path.join(directory, "temp_addheader.bam")
-    os.system(f"picard AddOrReplaceReadGroups -I {file} -O {addHeader} -R {refsequence} --RGID Sample --RGLB AMPLICON --RGPL ILLUMINA --RGPU unit1 --RGSM Sample")
+    os.system(f"picard AddOrReplaceReadGroups -I {file} -O {addHeader} --RGID Sample --RGLB AMPLICON --RGPL ILLUMINA --RGPU unit1 --RGSM Sample")
     os.system(f"samtools index {addHeader}")
 
     return addHeader
@@ -287,37 +280,38 @@ def call(vcfFile, directory, refSeq, a=None):
 
     :param vcfFile: temp_addheader.bam
     :param directory: temp directory
-    :param ploidy: ploidy.txt
     :param path: output directory
     :param a: number of INDELs
+
     :returns flag, snpFile
     '''
+    ## the calling variant files
     snp_indel_file_path = os.path.join(directory, 'snp_indel.vcf')
     snp_file_path = os.path.join(directory, 'snp.vcf')
     indel_file_path = os.path.join(directory, 'indel.vcf')
 
-
-    # can add [--threads <int>] to use multithreading
+    ## call variants
     os.system(f'gatk HaplotypeCaller -I {vcfFile} -O {snp_indel_file_path} -R {refSeq} -ploidy 1')
+    ## filter the raw variants according the number of INDELs
     if a is None:
-        os.system('vcftools --vcf %s --recode --remove-indels --stdout > %s' % (snp_indel_file_path, snp_file_path))
+        os.system(f'vcftools --vcf {snp_indel_file_path} --recode --remove-indels --stdout > {snp_file_path}')
         return 0, snp_file_path
     else:
-        os.system('vcftools --vcf %s --recode --keep-only-indels --stdout > %s' % (snp_indel_file_path, indel_file_path))
+        os.system(f'vcftools --vcf {snp_indel_file_path} --recode --keep-only-indels --stdout > {indel_file_path}')
         n_indels = 0
         with open(indel_file_path, 'r') as fhand:
             for line in fhand.readlines():
                 line = line.rstrip()
                 if len(line)==0:
-                    continue
-                if line[0]=='#':
-                    continue
-                else :
+                    pass
+                elif line[0]=='#':
+                    pass
+                else:
                     n_indels = n_indels + 1
         if n_indels > a:
             return -1, -1
-        else :
-            os.system('vcftools --vcf %s --recode --remove-indels --stdout > %s' % (snp_indel_file_path, snp_file_path))
+        else:
+            os.system(f'vcftools --vcf {snp_indel_file_path} --recode --remove-indels --stdout > {snp_file_path}')
             return 0, snp_file_path
 
 def snp_mutation_information(file):
@@ -327,7 +321,7 @@ def snp_mutation_information(file):
     :param file: snp.vcf
     :returns mutationInformation(dict): key=['Position', 'Ref', 'Alt']
     '''
-
+    ## obtain the all mutation records of a genome sequence
     mutation_lines = list()
     with open(file, 'r') as fhand:
         for line in fhand.readlines():
@@ -338,18 +332,21 @@ def snp_mutation_information(file):
                 pass
             else:
                 mutation_lines.append(line)
-    
+    ## 
     mutationInformation = list()
+    ## if there isn't SNP mutations of a sequence, the mutation position will be designated as 0
+    ## and the reference base and alternate base will be designated as NA
     if len(mutation_lines) == 0:
         record = {'Position':0, 'Ref':'NA', 'Alt':'NA'}
         mutationInformation.append(record)
     else:
+        ## handle each mutation records
         for item in mutation_lines:
+            snpMutationMessage = dict()
             item = item.split()
             pos = int(item[1])
             ref = str(item[3])
             alt = str(item[4])
-            snpMutationMessage = dict()
             snpMutationMessage['Position'] = pos
             snpMutationMessage['Ref'] = ref
             snpMutationMessage['Alt'] = alt
@@ -362,18 +359,27 @@ def module1(inputDirectory, outputDirectory, reference, collection_time="yes", l
     Call SNVs
 
     :param inputDirectory: raw genome sequences directory
+    :param outputDirectory: output directory
     :param reference: reference genome sequence
     :param collection_time: whether filter out sequence that is without clear collection time or country or not
     :param length: length of genome sequence
     :param number_n: number of unknown bases
     :param number_db: number of degenerate bases
     :param number_indels: number of INDELs
-    :param outputDirectory: output directory
     :return snp_merged.tsv, sequences_information.tsv
     '''
+    ## if the input directory doesn't exists, exit
+    if not os.path.exists(inputDirectory):
+        print(f"{inputDirectory} doesn't exist.")
+        sys.exit()
+
+    ## path: the absolute path of the output directory
+    ## decide whether the output directory has exists,
+    ## if exists, backup the already exists directory,
+    ## and make a new empty output directory.
     path = os.path.abspath(outputDirectory)
     if os.path.exists(path):
-        print("%s already exists."%path)
+        print(f"{path} already exists.")
         dirname, filename = os.path.split(path)
         i = 0
         while True:
@@ -383,29 +389,38 @@ def module1(inputDirectory, outputDirectory, reference, collection_time="yes", l
                 continue
             else :
                 os.rename(path, temp)
-                print("Back up %s to %s"%(path, temp))
+                print(f"Back up {path} to {temp}")
                 break
     os.mkdir(path)
 
+    ## make files and directories
     snpFile = os.path.join(path, 'snp_merged.tsv')
+    columns = '''Id\tDate\tCountry\tPosition\tRef\tAlt\n'''
+    with open(snpFile, 'a') as fhand:
+        fhand.write(columns)
     seq_info = os.path.join(path, 'sequences_information.tsv')
+
+    ## make the index directory and copy the reference file to the index directory
     indexDirectory = os.path.join(path, 'index')
     os.mkdir(indexDirectory)
-    refsequence = shutil.copy(reference, indexDirectory)
+    ref_path = os.path.abspath(reference)
+    refsequence = shutil.copy(ref_path, indexDirectory)
+
+    ## make the genome directory in the output directory
+    ## this directory will store the extracted genome sequences
     genomeDirectory = os.path.join(path, 'genome')
     os.mkdir(genomeDirectory)
-
-
-    if not os.path.exists(inputDirectory):
-        print("%s doesn't exist."%inputDirectory)
-        sys.exit()
     
+    ## extract genome sequences and put each sequence into a single file
+    ## the extracted genome sequences will be stored in the above genome directory
+    ## files_path: the list of absolute file path of the undercalling files
     print('Extracting genome sequences...')
     files_path = extract_sequence(inputDirectory, genomeDirectory)
     print('Done!')
     total = len(files_path)
-    print('There are %s sequences.'%total)
+    print(f'There are {total} sequences.')
 
+    ## get the reference sequence
     ref_str = str()
     with open(refsequence, 'r') as fhand:
         for line in fhand.readlines():
@@ -416,18 +431,15 @@ def module1(inputDirectory, outputDirectory, reference, collection_time="yes", l
                 continue
             else:
                 line = line.replace(" ", "")
+                line = line.replace("\t", "")
+                line = line.upper()
                 ref_str = ref_str + line
     length_ref = len(ref_str)
-    print("Length of virus reference genome sequence is %s" % length_ref)
+    print(f"Length of virus reference genome sequence is {length_ref}")
 
-
-    create_index(indexDirectory, refsequence)
-
-    columns = '''Id\tDate\tCountry\tPosition\tRef\tAlt\n'''
-    with open(snpFile, 'a') as fhand:
-        fhand.write(columns)
-    
-
+    ## create the index of the reference genome sequence
+    create_index(refsequence)
+    ## call variants
     pass_n = 0
     for file in files_path:
         flag = genome_quality_control(file, referenceLength=length_ref,a=length, b=number_n, c=number_db)
@@ -437,10 +449,10 @@ def module1(inputDirectory, outputDirectory, reference, collection_time="yes", l
             basicmessage, splitfasta, tempdirectory = split_sequence(file, path, filter=collection_time)
             if basicmessage == -1:
                 continue
-            else :
-                samFile = align(splitfasta, indexDirectory, tempdirectory)
+            else:
+                samFile = align(splitfasta, refsequence, tempdirectory)
                 bamFile = sort(samFile, tempdirectory)
-                vcfFile = mpileup(bamFile, tempdirectory, refsequence)
+                vcfFile = mpileup(bamFile, tempdirectory)
                 filter, vcfSnpFile = call(vcfFile, tempdirectory, refsequence, a=number_indels)
                 if filter == -1:
                     if os.path.exists(tempdirectory):
@@ -448,40 +460,34 @@ def module1(inputDirectory, outputDirectory, reference, collection_time="yes", l
                     continue
                 else:
                     pass_n = pass_n + 1
-
-
+                ## write the SNP variant information to the mutation records file
                 snpMutationInformation = snp_mutation_information(vcfSnpFile)
-                snp_mutation = dict()
-                snp_mutation['Id'] = basicmessage['Id']
-                snp_mutation['Date'] = basicmessage['Date']
-                snp_mutation['Country'] = basicmessage['Country']
-
-
+                Idx = basicmessage['Id']
+                Date = basicmessage['Date']
+                Country = basicmessage['Country']
                 with open(snpFile, 'a', encoding='utf-8') as fhand:
                     for snp in snpMutationInformation:
-                        if (("Position" in snp) and ("Ref" in snp) and ("Alt" in snp)):
-                            snp_mutation['Position'] = snp['Position']
-                            snp_mutation['Ref'] = snp['Ref']
-                            snp_mutation['Alt'] = snp['Alt']
-                        else:
-                            continue
-                        record = str(snp_mutation['Id']) + "\t" + str(snp_mutation['Date']) + "\t" + str(snp_mutation['Country']) + "\t" + str(snp_mutation['Position']) + "\t" + str(snp_mutation['Ref']) + "\t" + str(snp_mutation['Alt']) +'\n'
+                        Position = snp['Position']
+                        Ref = snp['Ref']
+                        Alt = snp['Alt']
+                        record = str(Idx) + "\t" + str(Date) + "\t" + str(Country) + "\t" + str(Position) + "\t" + str(Ref) + "\t" + str(Alt) +'\n'
                         fhand.write(record)
+        ## remove the temporary file and directory
         if os.path.exists(logging):
             os.remove(logging)
         if os.path.exists(tempdirectory):
             shutil.rmtree(tempdirectory)
+    ## remove the index and genome directory
     if os.path.exists(indexDirectory):
         shutil.rmtree(indexDirectory)
     if os.path.exists(genomeDirectory):
         shutil.rmtree(genomeDirectory)
-
-
+    ## write the quality control message to file
     not_pass_n = total - pass_n
     with open(seq_info, 'a') as fhand:
-        line1 = 'Total genome sequences: %s'%total + '\n'
-        line2 = 'Pass quality control: %s'%pass_n + '\n'
-        line3 = 'Not pass quality control: %s'%not_pass_n + '\n'
+        line1 = f'Total genome sequences: {total}\n'
+        line2 = f'Pass quality control: {pass_n}\n'
+        line3 = f'Not pass quality control: {not_pass_n}\n'
         fhand.write(line1)
         fhand.write(line2)
         fhand.write(line3)

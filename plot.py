@@ -16,9 +16,9 @@ import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
 
 
-def plot(file, directory, days):
+def plot(file, directory, days=7):
     '''
-    结果可视化
+    Visualization
 
     :param file: data_plot.tsv
     :param directory: ouput directory
@@ -26,6 +26,8 @@ def plot(file, directory, days):
     '''
 
     pdfFile = os.path.join(directory, 'hap_date.pdf')
+    if os.path.exists(pdfFile):
+        os.system(f"rm -rf {pdfFile}")
     df = pd.read_csv(file, sep='\t')
     df.index = pd.to_datetime(df["Date"])
     df = df.sort_index(ascending=True)
